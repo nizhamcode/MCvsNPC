@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Main Character vs NPC - Interactive Cinematic Experience</title>
+    
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Cinzel:wght@600;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        deep: '#030712',
+                        rpgDark: '#0b0f19',
+                        neonCyan: '#06b6d4',
+                        neonMagenta: '#ec4899',
+                        neonGold: '#f59e0b',
+                        neonGreen: '#10b981',
+                        textMain: '#f9fafb',
+                        textDim: '#9ca3af'
+                    },
+                    fontFamily: {
+                        space: ['Space Grotesk', 'sans-serif'],
+                        jakarta: ['Plus Jakarta Sans', 'sans-serif'],
+                        cinzel: ['Cinzel', 'serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --glow-cyan: 0 0 20px rgba(6, 182, 212, 0.45);
+            --glow-magenta: 0 0 20px rgba(236, 72, 153, 0.45);
+            --glow-gold: 0 0 20px rgba(245, 158, 11, 0.45);
+            --glow-green: 0 0 20px rgba(16, 185, 129, 0.45);
+        }
+
+        body {
+            background-color: #030712;
+            color: #f9fafb;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Ambient background canvas */
+        #particleCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+            opacity: 0.55;
+        }
+
+        /* 16:9 Aspect ratio container scaling */
+        .slide-deck-wrapper {
+            position: relative;
+            z-index: 10;
+            width: 1280px;
+            height: 720px;
+            background: linear-gradient(135deg, rgba(11, 15, 25, 0.98) 0%, rgba(3, 7, 18, 0.99) 100%);
+            border: 1px solid rgba(6, 182, 212, 0.15);
+            border-radius: 28px;
+            box-shadow: 0 35px 80px rgba(0, 0, 0, 0.8), 0 0 60px rgba(6, 182, 212, 0.05);
+            overflow: hidden;
+            transform-origin: center center;
+            transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* Glassmorphic elements and panels */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(16px);
+            border-radius: 20px;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .glass-panel:hover {
+            border-color: rgba(6, 182, 212, 0.3);
+            box-shadow: var(--glow-cyan);
+            background: rgba(15, 23, 42, 0.6);
+        }
+
+        /* Cyberpunk scanlines overlay */
+        .scanlines {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.12) 50%
+            );
+            background-size: 100% 4px;
+            z-index: 100;
+            pointer-events: none;
+            opacity: 0.2;
+        }
+
+        /* Sleek slide transitions */
+        .slide-content {
+            display: none;
+            height: calc(100% - 130px);
+            padding: 30px 70px;
+        }
+
+        .slide-content.active {
+            display: flex;
+            flex-direction: column;
+            animation: slideReveal 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes slideReveal {
+            from { opacity: 0; transform: scale(0.96) translateY(20px); filter: blur(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+        }
+
+        /* Cyber glitch hover text effect on headers */
+        .cyber-glitch-text {
+            position: relative;
+        }
+        
+        .cyber-glitch-text::before {
+            content: attr(data-text);
+            position: absolute;
+            left: -2px;
+            text-shadow: 1px 0 #ec4899;
+            top: 0;
+            color: #f9fafb;
+            background: #0b0f19;
+            overflow: hidden;
+            clip: rect(0, 900px, 0, 0); 
+            animation: glitch-anim-1 2s infinite linear alternate-reverse;
+            display: none;
+        }
+
+        .cyber-glitch-text:hover::before {
+            display: block;
+        }
+
+        @keyframes glitch-anim-1 {
+            0% { clip: rect(20px, 9999px, 40px, 0); }
+            100% { clip: rect(60px, 9999px, 80px, 0); }
+        }
+
+        /* Character Cards styling */
+        .character-card {
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        .character-card:hover {
+            transform: translateY(-8px) scale(1.03);
+            border-color: rgba(6, 182, 212, 0.4);
+            box-shadow: var(--glow-cyan);
+        }
+
+        .character-card.active {
+            border-color: #06b6d4 !important;
+            background: rgba(6, 182, 212, 0.12) !important;
+            box-shadow: var(--glow-cyan);
+        }
+
+        /* Dynamic rotations */
+        .rotating-wheel {
+            animation: rotateCycle 30s linear infinite;
+        }
+        @keyframes rotateCycle {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Clean feedback toast alert */
+        #customToast {
+            position: absolute;
+            bottom: 90px;
+            right: 40px;
+            background: rgba(16, 185, 129, 0.95);
+            color: #030712;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: bold;
+            box-shadow: var(--glow-green);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 200;
+        }
+
+        #customToast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Ambient particle network system -->
+    <canvas id="particleCanvas"></canvas>
+
+    <!-- Custom Floating Toast Notification -->
+    <div id="customToast">MISI DISALIN KE CLIPBOARD!</div>
+
+    <div class="slide-deck-wrapper" id="slideDeck">
+        <div class="scanlines"></div>
+
+        <!-- TOP HEADS-UP DISPLAY (HUD) PANEL -->
+        <header class="h-[60px] border-b border-white/5 px-12 flex items-center justify-between font-space text-[11px] tracking-[0.25em] text-textDim relative z-[110]">
+            <div class="flex items-center gap-4">
+                <span class="w-2.5 h-2.5 bg-neonCyan rounded-full shadow-[0_0_10px_#06b6d4] animate-pulse"></span>
+                <span>SYSTEM ARC // NARRATIVE DECK v3.1</span>
+            </div>
+            <div class="flex items-center gap-8">
+                <button id="bgmToggleBtn" class="flex items-center gap-2 px-4 py-1.5 border border-white/10 rounded-lg hover:border-neonCyan hover:text-neonCyan transition-all duration-300 text-white" onclick="toggleBGM()">
+                    <i id="bgmIcon" class="fa-solid fa-music text-neonMagenta"></i> 
+                    <span id="bgmText">SOUNDTRACK: OFF</span>
+                </button>
+                <span>|</span>
+                <span id="slideCounter" class="text-neonCyan font-bold">QUEST 01 / 12</span>
+            </div>
+        </header>
+
+        <!-- Dynamic Slide Progress Tracker Line -->
+        <div class="w-full h-[3px] bg-white/5 relative z-[110]">
+            <div id="slideProgressBar" class="h-full bg-gradient-to-r from-neonCyan via-neonMagenta to-neonGold transition-all duration-700 ease-out shadow-[0_0_15px_#06b6d4]" style="width: 8.33%;"></div>
+        </div>
+
+        <!-- ==================== MAIN PRESENTATION SLIDES ==================== -->
+        <main class="relative h-[calc(100%-130px)] w-full overflow-hidden">
+
+            <!-- Slide 1: Title Screen -->
+            <div class="slide-content active" id="slide1">
+                <div class="grid grid-cols-12 gap-8 h-full items-center">
+                    <div class="col-span-7 flex flex-col justify-center">
+                        <span class="text-neonMagenta font-space text-xs tracking-[0.35em] font-bold uppercase border border-neonMagenta/20 px-3.5 py-1.5 rounded-lg self-start mb-6 bg-neonMagenta/5">
+                            NARRATIVE EVALUATION INITIATION
+                        </span>
+                        <h1 class="font-space font-extrabold text-5xl leading-tight tracking-wide text-white mb-5 cyber-glitch-text" data-text="APAKAH KAMU MAIN CHARACTER?">
+                            APAKAH KAMU <br>
+                            <span class="bg-gradient-to-r from-neonCyan via-neonMagenta to-neonGold bg-clip-text text-transparent font-cinzel text-6xl font-black drop-shadow-sm">MAIN CHARACTER</span>?
+                        </h1>
+                        <p class="font-jakarta text-textDim text-base leading-relaxed max-w-xl mb-8">
+                            Atau cuma sekadar karakter pendukung (NPC) di kehidupanmu sendiri? Sebuah eksplorasi filosofis naratif anime tentang takdir dan arah tujuan hidup.
+                        </p>
+                        <div class="flex items-center gap-6">
+                            <button onclick="nextSlide()" class="px-8 py-4 bg-gradient-to-r from-neonCyan to-blue-600 rounded-xl font-space tracking-widest text-xs text-deep font-bold shadow-[0_0_25px_rgba(6,182,212,0.4)] hover:scale-105 active:scale-95 transition-all duration-300">
+                                MULAI QUEST <i class="fa-solid fa-play ml-2"></i>
+                            </button>
+                            <span class="text-xs font-space text-textDim tracking-wider italic">Tekan SPACE / ARROW KEYS untuk navigasi</span>
+                        </div>
+                    </div>
+                    <div class="col-span-5 flex justify-center items-center">
+                        <div class="relative w-[320px] h-[320px] flex items-center justify-center">
+                            <div class="absolute inset-0 border-[3px] border-dashed border-neonCyan/20 rounded-full rotating-wheel"></div>
+                            <div class="absolute inset-6 border border-neonMagenta/30 rounded-full rotating-wheel" style="animation-direction: reverse; animation-duration: 18s;"></div>
+                            <div class="absolute inset-12 border-2 border-white/5 rounded-full"></div>
+                            <div class="z-10 text-center">
+                                <i class="fa-solid fa-shield-halved text-5xl text-neonCyan drop-shadow-[0_0_20px_#06b6d4] animate-bounce"></i>
+                                <div class="font-space text-[10px] tracking-widest text-textDim mt-5 uppercase">Decision Core</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 2: Anime Character Selector -->
+            <div class="slide-content" id="slide2">
+                <div class="text-center mb-6">
+                    <h2 class="font-space font-bold text-3xl tracking-wide text-white flex items-center justify-center gap-3">
+                        <i class="fa-solid fa-sparkles text-neonMagenta"></i> PROYEKSI IMPIAN KITA
+                    </h2>
+                    <p class="text-textDim text-sm mt-1">Saat menonton anime, kita kerap mengidolakan tokoh utamanya. Pilih salah satu:</p>
+                </div>
+
+                <div class="grid grid-cols-5 gap-4 mt-2">
+                    <!-- Luffy -->
+                    <div class="character-card glass-panel p-5 flex flex-col items-center justify-between text-center cursor-pointer h-[230px]" onclick="selectCharacter('luffy', this)">
+                        <div class="w-14 h-14 rounded-xl bg-orange-500/10 flex items-center justify-center border border-orange-500/30">
+                            <i class="fa-solid fa-anchor text-2xl text-orange-400"></i>
+                        </div>
+                        <h3 class="font-space text-sm font-bold text-white mt-3">LUFFY</h3>
+                        <p class="text-[11px] text-textDim leading-relaxed">Tak pernah menyerah menghadapi batas kemustahilan.</p>
+                        <span class="text-[9px] text-orange-400 font-space tracking-widest border border-orange-500/20 px-2 py-0.5 rounded bg-orange-500/5 uppercase">Pirate King</span>
+                    </div>
+
+                    <!-- Naruto -->
+                    <div class="character-card glass-panel p-5 flex flex-col items-center justify-between text-center cursor-pointer h-[230px]" onclick="selectCharacter('naruto', this)">
+                        <div class="w-14 h-14 rounded-xl bg-yellow-500/10 flex items-center justify-center border border-yellow-500/30">
+                            <i class="fa-solid fa-fire text-2xl text-yellow-400"></i>
+                        </div>
+                        <h3 class="font-space text-sm font-bold text-white mt-3">NARUTO</h3>
+                        <p class="text-[11px] text-textDim leading-relaxed">Tetap bangkit walau dibenci, dihina & diabaikan.</p>
+                        <span class="text-[9px] text-yellow-400 font-space tracking-widest border border-yellow-500/20 px-2 py-0.5 rounded bg-yellow-500/5 uppercase">Hokage Path</span>
+                    </div>
+
+                    <!-- Tanjiro -->
+                    <div class="character-card glass-panel p-5 flex flex-col items-center justify-between text-center cursor-pointer h-[230px]" onclick="selectCharacter('tanjiro', this)">
+                        <div class="w-14 h-14 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/30">
+                            <i class="fa-solid fa-leaf text-2xl text-emerald-400"></i>
+                        </div>
+                        <h3 class="font-space text-sm font-bold text-white mt-3">TANJIRO</h3>
+                        <p class="text-[11px] text-textDim leading-relaxed">Tetap memiliki kelembutan hati yang tulus kepada siapa saja.</p>
+                        <span class="text-[9px] text-emerald-400 font-space tracking-widest border border-emerald-500/20 px-2 py-0.5 rounded bg-emerald-500/5 uppercase">Slayer Soul</span>
+                    </div>
+
+                    <!-- Eren -->
+                    <div class="character-card glass-panel p-5 flex flex-col items-center justify-between text-center cursor-pointer h-[230px]" onclick="selectCharacter('eren', this)">
+                        <div class="w-14 h-14 rounded-xl bg-red-500/10 flex items-center justify-center border border-red-500/30">
+                            <i class="fa-solid fa-eye text-2xl text-red-400"></i>
+                        </div>
+                        <h3 class="font-space text-sm font-bold text-white mt-3">EREN</h3>
+                        <p class="text-[11px] text-textDim leading-relaxed">Berani menentang tirani dunia demi sebuah kebebasan.</p>
+                        <span class="text-[9px] text-red-400 font-space tracking-widest border border-red-500/20 px-2 py-0.5 rounded bg-red-500/5 uppercase">Freedom Core</span>
+                    </div>
+
+                    <!-- L Lawliet -->
+                    <div class="character-card glass-panel p-5 flex flex-col items-center justify-between text-center cursor-pointer h-[230px]" onclick="selectCharacter('l_lawliet', this)">
+                        <div class="w-14 h-14 rounded-xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/30">
+                            <i class="fa-solid fa-brain text-2xl text-cyan-400"></i>
+                        </div>
+                        <h3 class="font-space text-sm font-bold text-white mt-3">L (LAWLINET)</h3>
+                        <p class="text-[11px] text-textDim leading-relaxed">Rela mengorbankan nyawa demi menegakkan keadilan.</p>
+                        <span class="text-[9px] text-cyan-400 font-space tracking-widest border border-cyan-500/20 px-2 py-0.5 rounded bg-cyan-500/5 uppercase">Justice Mind</span>
+                    </div>
+                </div>
+
+                <!-- Interactive projection box -->
+                <div class="mt-6 glass-panel p-4 min-h-[85px] border border-neonCyan/20 flex items-center justify-center" id="characterQuoteBox">
+                    <div class="text-center">
+                        <p class="text-textDim italic font-jakarta text-sm">"Silakan pilih salah satu pahlawan di atas untuk mensinkronisasi tekad naratif mereka..."</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 3: Elemen yang Terlupakan -->
+            <div class="slide-content" id="slide3">
+                <div class="grid grid-cols-12 gap-10 h-full items-center">
+                    <div class="col-span-6 flex flex-col justify-center">
+                        <span class="text-neonCyan font-space text-[10px] tracking-[0.3em] font-bold uppercase mb-3">ANATOMY OF HEROISM</span>
+                        <h2 class="font-space font-bold text-3xl tracking-wide text-white mb-6 flex items-center gap-3">
+                            <i class="fa-solid fa-wand-magic-sparkles text-neonCyan animate-pulse"></i> RAHASIA YANG TERSEMBUNYI
+                        </h2>
+                        <p class="text-sm text-textDim leading-relaxed mb-4">
+                            Kita sering berpikir bahwa pahlawan anime dikagumi karena jurus andalan, pedang pusaka, atau kekuatan dewa mereka.
+                        </p>
+                        <p class="text-sm text-white/90 leading-relaxed font-bold">
+                            Namun di balik segala fiksi, ada satu komponen nyata paling magnetis yang menopang seluruh jiwa kepahlawanan mereka...
+                        </p>
+                    </div>
+                    <div class="col-span-6 glass-panel p-8 flex flex-col gap-6 justify-center">
+                        <div class="flex items-center gap-5 border-b border-white/5 pb-5">
+                            <div class="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center line-through text-red-500 border border-red-500/30 shrink-0">
+                                <i class="fa-solid fa-bolt text-xl"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-space font-bold text-xs text-textDim tracking-wider">BUKAN KARENA KEKUATAN</h4>
+                                <p class="text-[11px] text-textDim mt-0.5">Bukan chakra, haki, sihir luar biasa, maupun persenjataan mistis.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-5 bg-gradient-to-r from-neonCyan/15 to-transparent p-5 rounded-2xl border border-neonCyan/30">
+                            <div class="w-14 h-14 rounded-xl bg-neonCyan/20 flex items-center justify-center border border-neonCyan text-neonCyan shadow-[0_0_15px_rgba(6,182,212,0.3)] animate-bounce shrink-0">
+                                <i class="fa-solid fa-compass text-3xl animate-spin" style="animation-duration: 10s;"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-space font-extrabold text-neonCyan tracking-wider text-sm uppercase">Sense of Purpose (Tujuan Hidup)</h4>
+                                <p class="text-xs text-white/90 mt-0.5">Inilah magnet takdir yang menarik seluruh jalannya cerita semesta untuk tunduk pada langkah kaki mereka.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 4: Realitas NPC vs MC (With Game) -->
+            <div class="slide-content" id="slide4">
+                <div class="grid grid-cols-12 gap-10 h-full items-center">
+                    <div class="col-span-6">
+                        <span class="text-neonMagenta font-space text-[10px] tracking-[0.3em] font-bold uppercase mb-3">SYSTEMATIC DECAY</span>
+                        <h2 class="font-space font-bold text-3xl tracking-wide text-white mb-4 flex items-center gap-3">
+                            <i class="fa-solid fa-rotate text-neonMagenta"></i> LINGKARAN SETAN NPC
+                        </h2>
+                        <p class="text-xs text-textDim leading-relaxed mb-4">
+                            Dalam game, NPC (Non-Playable Character) bergerak dalam pola algoritma yang hampa esensi, kaku, dan repetitif.
+                        </p>
+                        <blockquote class="border-l-4 border-neonMagenta pl-4 italic text-sm text-white/95 my-4 bg-neonMagenta/5 py-3 rounded-r-xl">
+                            "Bangun. Makan. Sekolah/Kerja. Tidur. Ulangi."
+                        </blockquote>
+                        <p class="text-xs text-textDim leading-relaxed">
+                            Berapa banyak dari kita yang menghabiskan waktu bertahun-tahun dalam rutinitas otomatis tanpa pernah menggugat arah tujuan hidup kita?
+                        </p>
+                    </div>
+
+                    <!-- Mini Game: NPC Loop Breaker -->
+                    <div class="col-span-6 glass-panel p-6 flex flex-col justify-between items-center text-center relative overflow-hidden h-[340px]">
+                        <div id="gameBg" class="absolute inset-0 bg-transparent transition-colors duration-500 z-0"></div>
+                        <div class="z-10">
+                            <h3 class="font-space text-xs text-neonMagenta font-bold tracking-widest uppercase mb-1">NPC LOOP DETECTOR</h3>
+                            <p class="text-[10px] text-textDim">Dobraklah sistem lingkaran otomatisasi kehidupan Anda sekarang!</p>
+                        </div>
+
+                        <!-- Central System Core -->
+                        <div class="z-10 my-2 relative">
+                            <div id="loopCircle" class="w-24 h-24 border-4 border-dashed border-neonMagenta rounded-full flex items-center justify-center transition-all duration-300">
+                                <i id="loopIcon" class="fa-solid fa-arrows-spin text-3xl text-neonMagenta animate-spin" style="animation-duration: 3s;"></i>
+                            </div>
+                            <span id="loopStatusText" class="absolute -bottom-6 left-1/2 -translate-x-1/2 font-space text-[9px] text-neonMagenta tracking-widest font-bold uppercase whitespace-nowrap">STATUS: ENTRAPPED IN LOOP</span>
+                        </div>
+
+                        <button id="breakLoopBtn" onclick="breakNpcLoop()" class="z-10 px-8 py-3 bg-neonMagenta text-white rounded-xl font-space text-[11px] tracking-wider font-bold shadow-[0_0_15px_rgba(236,72,153,0.3)] hover:scale-105 active:scale-95 transition-all duration-300 uppercase">
+                            BREAK AUTOMATED LOOP
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 5: Kekuatan Tekad -->
+            <div class="slide-content" id="slide5">
+                <div class="text-center mb-6">
+                    <h2 class="font-space font-bold text-3xl tracking-wide text-white flex items-center justify-center gap-3">
+                        <i class="fa-solid fa-fire-flame-curved text-neonGold animate-pulse"></i> TEKAD UTAMA YANG JELAS
+                    </h2>
+                    <p class="text-textDim text-sm mt-1">Mereka bukanlah karakter tanpa celah, melainkan individu dengan titik tujuan yang mutlak.</p>
+                </div>
+
+                <div class="grid grid-cols-3 gap-6 mt-6">
+                    <!-- Luffy Purpose -->
+                    <div class="glass-panel p-6 border-l-4 border-orange-500 bg-orange-500/5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="fa-solid fa-compass text-2xl text-orange-400"></i>
+                            <h3 class="font-space font-bold text-white text-sm tracking-wide">LUFFY</h3>
+                        </div>
+                        <p class="text-xs text-textDim leading-relaxed">
+                            Luffy tidak menguasai ilmu kelautan atau geografi dunia. <strong class="text-white">Tapi ia tahu satu hal penting:</strong> Ia akan menaklukkan samudera luas demi menjadi Raja Bajak Laut.
+                        </p>
+                    </div>
+
+                    <!-- Naruto Purpose -->
+                    <div class="glass-panel p-6 border-l-4 border-yellow-500 bg-yellow-500/5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="fa-solid fa-medal text-2xl text-yellow-400"></i>
+                            <h3 class="font-space font-bold text-white text-sm tracking-wide">NARUTO</h3>
+                        </div>
+                        <p class="text-xs text-textDim leading-relaxed">
+                            Naruto tidak ditakdirkan lahir sebagai orang jenius berkuasa. <strong class="text-white">Namun ia tahu target hidupnya:</strong> Diakui oleh desa dan melindungi sesama sebagai Hokage.
+                        </p>
+                    </div>
+
+                    <!-- Tanjiro Purpose -->
+                    <div class="glass-panel p-6 border-l-4 border-emerald-500 bg-emerald-500/5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i class="fa-solid fa-shield text-2xl text-emerald-400"></i>
+                            <h3 class="font-space font-bold text-white text-sm tracking-wide">TANJIRO</h3>
+                        </div>
+                        <p class="text-xs text-textDim leading-relaxed">
+                            Tanjiro tidak meniti kehidupan yang mudah dan menyenangkan. <strong class="text-white">Tetapi ia tahu satu-satunya misi suci:</strong> Menyelamatkan dan mengembalikan Nezuko menjadi manusia.
+                        </p>
+                    </div>
+                </div>
+
+                <p class="text-center font-jakarta text-textDim italic text-sm mt-8">
+                    "Mereka semua sangat berbeda dalam karakteristik pribadi, namun bersatu dalam satu prinsip: <span class="text-neonCyan font-bold">Mereka menolak berjalan tanpa peta arah.</span>"
+                </p>
+            </div>
+
+            <!-- Slide 6: Ketakutan & Penghalang Kita (With Game) -->
+            <div class="slide-content" id="slide6">
+                <div class="grid grid-cols-12 gap-8 h-full items-center">
+                    <div class="col-span-6">
+                        <span class="text-red-500 font-space text-[10px] tracking-[0.3em] font-bold uppercase mb-3">MIND BARRIERS</span>
+                        <h2 class="font-space font-bold text-3xl tracking-wide text-white mb-4 flex items-center gap-3">
+                            <i class="fa-solid fa-ban text-red-500"></i> DINDING ILUSI PENJARA DIRI
+                        </h2>
+                        <p class="text-xs text-textDim leading-relaxed mb-4">
+                            Lalu, bagaimana dengan diri kita yang ada di dunia nyata saat ini?
+                        </p>
+                        <ul class="space-y-3.5 text-xs text-textDim">
+                            <li class="flex items-start gap-3"><i class="fa-solid fa-circle-xmark text-neonMagenta mt-0.5"></i> Berapa banyak mimpi yang dikubur hidup-hidup hanya karena kecemasan akan kegagalan?</li>
+                            <li class="flex items-start gap-3"><i class="fa-solid fa-circle-xmark text-neonMagenta mt-0.5"></i> Berapa banyak peluang emas yang diabaikan karena takut akan komentar negatif lingkungan?</li>
+                            <li class="flex items-start gap-3"><i class="fa-solid fa-circle-xmark text-neonMagenta mt-0.5"></i> Berapa banyak karya terhambat demi mencari validasi dari orang yang tidak peduli?</li>
+                        </ul>
+                    </div>
+
+                    <!-- Interactive Fear Shatterer Game -->
+                    <div class="col-span-6 glass-panel p-5 flex flex-col justify-between h-[340px] border border-red-500/20 text-center">
+                        <div>
+                            <h3 class="font-space text-xs text-red-500 font-bold tracking-widest uppercase mb-1">INTERACTIVE FEAR SHATTERER</h3>
+                            <p class="text-[10px] text-textDim">Gunakan kekuatan tekadmu! Klik setiap ketakutan untuk menghancurkannya.</p>
+                        </div>
+
+                        <!-- Interactive Nodes of Fear -->
+                        <div class="flex justify-around items-center my-2 gap-3" id="fearNodeContainer">
+                            <!-- Fear 1 -->
+                            <div class="w-24 h-24 rounded-2xl border border-red-500/30 bg-red-500/5 flex flex-col justify-center items-center cursor-pointer hover:bg-red-500/10 hover:border-red-500 hover:scale-105 transition-all duration-300 p-3 text-center" onclick="shatterFear(this, 'TAKUT GAGAL')">
+                                <i class="fa-solid fa-triangle-exclamation text-xl text-red-400 mb-1.5 animate-pulse"></i>
+                                <span class="font-space text-[9px] text-white tracking-widest font-bold leading-tight">TAKUT GAGAL</span>
+                            </div>
+                            <!-- Fear 2 -->
+                            <div class="w-24 h-24 rounded-2xl border border-red-500/30 bg-red-500/5 flex flex-col justify-center items-center cursor-pointer hover:bg-red-500/10 hover:border-red-500 hover:scale-105 transition-all duration-300 p-3 text-center" onclick="shatterFear(this, 'OPINI ORANG')">
+                                <i class="fa-solid fa-comment-slash text-xl text-red-400 mb-1.5 animate-pulse"></i>
+                                <span class="font-space text-[9px] text-white tracking-widest font-bold leading-tight">OPINI ORANG</span>
+                            </div>
+                            <!-- Fear 3 -->
+                            <div class="w-24 h-24 rounded-2xl border border-red-500/30 bg-red-500/5 flex flex-col justify-center items-center cursor-pointer hover:bg-red-500/10 hover:border-red-500 hover:scale-105 transition-all duration-300 p-3 text-center" onclick="shatterFear(this, 'TAKUT DICEMOOH')">
+                                <i class="fa-solid fa-face-frown text-xl text-red-400 mb-1.5 animate-pulse"></i>
+                                <span class="font-space text-[9px] text-white tracking-widest font-bold leading-tight">TAKUT DICEMOOH</span>
+                            </div>
+                        </div>
+
+                        <div id="shatterFeedback" class="text-xs font-bold text-neonCyan font-space h-6">Semua kecemasan di atas menyegel takdir kepahlawanan Anda.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 7: Berani Terlihat Gila -->
+            <div class="slide-content" id="slide7">
+                <div class="text-center mb-6">
+                    <h2 class="font-space font-bold text-3xl tracking-wide text-white flex items-center justify-center gap-3">
+                        <i class="fa-solid fa-fire text-neonMagenta"></i> BERANI TERLIHAT GILA DI AWAL
+                    </h2>
+                    <p class="text-textDim text-sm mt-1">Ide revolusioner serta impian besar hampir selalu dianggap tidak masuk akal oleh kebanyakan orang.</p>
+                </div>
+
+                <div class="grid grid-cols-3 gap-6 mt-6">
+                    <div class="glass-panel p-5 flex flex-col justify-between items-center text-center h-[230px]">
+                        <div class="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center border border-orange-500/30">
+                            <i class="fa-solid fa-skull-crossbones text-xl text-orange-400"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-space font-bold text-white text-sm mb-1.5">LUFFY</h3>
+                            <p class="text-[11px] text-textDim leading-relaxed">
+                                Ditertawakan habis-habisan oleh bajak laut lain saat menyuarakan misinya menemukan One Piece.
+                            </p>
+                        </div>
+                        <span class="text-[9px] text-orange-400 font-space tracking-widest border border-orange-500/20 px-2 py-0.5 rounded uppercase">Dikecam Dunia</span>
+                    </div>
+
+                    <div class="glass-panel p-5 flex flex-col justify-between items-center text-center h-[230px]">
+                        <div class="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center border border-yellow-500/30">
+                            <i class="fa-solid fa-face-laugh text-xl text-yellow-400"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-space font-bold text-white text-sm mb-1.5">NARUTO</h3>
+                            <p class="text-[11px] text-textDim leading-relaxed">
+                                Dicaci oleh seluruh penduduk desa Konoha saat berniat melampaui kebesaran gelar para Hokage terdahulu.
+                            </p>
+                        </div>
+                        <span class="text-[9px] text-yellow-400 font-space tracking-widest border border-yellow-500/20 px-2 py-0.5 rounded uppercase">Dipandang Remeh</span>
+                    </div>
+
+                    <div class="glass-panel p-5 flex flex-col justify-between items-center text-center h-[230px]">
+                        <div class="w-12 h-12 rounded-xl bg-neonCyan/10 flex items-center justify-center border border-neonCyan/30">
+                            <i class="fa-solid fa-shield-halved text-xl text-neonCyan"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-space font-bold text-white text-sm mb-1.5">MUHAMMAD AL-FATIH</h3>
+                            <p class="text-[11px] text-textDim leading-relaxed">
+                                Dianggap mustahil ketika merencanakan strategi logistik memindahkan armada kapal perang menembus perbukitan Galata.
+                            </p>
+                        </div>
+                        <span class="text-[9px] text-neonCyan font-space tracking-widest border border-neonCyan/20 px-2 py-0.5 rounded uppercase">Menentang Logika</span>
+                    </div>
+                </div>
+
+                <div class="mt-8 text-center">
+                    <p class="font-cinzel text-white text-sm tracking-[0.2em] font-bold uppercase">
+                        "Sejarah peradaban tidak pernah dibentuk oleh pemikiran yang biasa."
+                    </p>
+                </div>
+            </div>
+
+            <!-- Slide 8: Definisi MC Sejati -->
+            <div class="slide-content" id="slide8">
+                <div class="grid grid-cols-12 gap-10 h-full items-center">
+                    <div class="col-span-6 flex flex-col justify-center">
+                        <span class="text-neonCyan font-space text-[10px] tracking-[0.3em] font-bold uppercase mb-3">[ THE GOLDEN SCALE ]</span>
+                        <h2 class="font-space font-bold text-3xl tracking-wide text-white mb-4">
+                            DEFINISI TOKOH UTAMA SEJATI
+                        </h2>
+                        <p class="text-xs text-textDim leading-relaxed mb-4">
+                            Main Character sejati bukanlah sosok yang semata dominan, berkuasa, atau memiliki kekayaan material yang berlimpah.
+                        </p>
+                        <p class="text-xs text-textDim leading-relaxed">
+                            Jika kebesaran hanya dinilai dari pengaruh dan pencapaian egoistik semata, <strong class="text-white">maka barisan tokoh antagonis (Villains) di luar sana juga memiliki prestasi yang serupa.</strong>
+                        </p>
+                    </div>
+
+                    <div class="col-span-6 glass-panel p-6 flex flex-col gap-4">
+                        <h3 class="font-space text-xs text-neonCyan tracking-wider font-bold mb-1 uppercase">ALTRUISTIC HERO VALUES:</h3>
+                        <div class="flex items-start gap-4">
+                            <div class="w-10 h-10 rounded-xl bg-neonGreen/10 flex items-center justify-center border border-neonGreen text-neonGreen mt-1 shrink-0">
+                                <i class="fa-solid fa-hand-holding-heart"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-space text-xs font-bold text-white uppercase tracking-wider">MANFAAT MAKSIMAL</h4>
+                                <p class="text-[11px] text-textDim mt-0.5">Mereka mengalokasikan hidupnya untuk menjadi solusi bagi kebaikan orang banyak.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-4">
+                            <div class="w-10 h-10 rounded-xl bg-neonGold/10 flex items-center justify-center border border-neonGold text-neonGold mt-1 shrink-0">
+                                <i class="fa-solid fa-lightbulb"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-space text-xs font-bold text-white uppercase tracking-wider">PEMBAWA HARAPAN</h4>
+                                <p class="text-[11px] text-textDim mt-0.5">Hadir sebagai sauh optimisme di tengah derasnya pusaran ketidakpastian.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-4">
+                            <div class="w-10 h-10 rounded-xl bg-neonCyan/10 flex items-center justify-center border border-neonCyan text-neonCyan mt-1 shrink-0">
+                                <i class="fa-solid fa-sun animate-spin" style="animation-duration: 10s;"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-space text-xs font-bold text-white uppercase tracking-wider">PEMBERI CAHAYA</h4>
+                                <p class="text-[11px] text-textDim mt-0.5">Melakukan tindakan nyata untuk mentransformasikan lingkungan yang redup menjadi cerah.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 9: Perspektif Spiritual -->
+            <div class="slide-content" id="slide9">
+                <div class="grid grid-cols-12 gap-8 h-full items-center">
+                    <div class="col-span-4 flex justify-center">
+                        <div class="w-64 h-64 border-4 border-double border-neonGold/20 rounded-full flex items-center justify-center p-4">
+                            <!-- Beautiful pure SVG Arabesque style vector to ensure it loads beautifully -->
+                            <svg class="w-full h-full text-neonGold/30" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <circle cx="50" cy="50" r="45" stroke-dasharray="2 2" />
+                                <polygon points="50,5 95,50 50,95 5,50" />
+                                <polygon points="50,15 85,50 50,85 15,50" />
+                                <circle cx="50" cy="50" r="12" stroke="currentColor" stroke-width="1" />
+                                <path d="M50,5 L50,95 M5,50 L95,50" />
+                                <circle cx="50" cy="50" r="2" fill="currentColor" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="col-span-8 flex flex-col justify-center">
+                        <span class="text-neonGold font-space text-[10px] tracking-[0.3em] font-bold uppercase mb-3">[ PROPHETIC CONCEPT ]</span>
+                        <h2 class="font-space font-bold text-3xl tracking-wide text-white mb-4">
+                            PERSPEKTIF SPIRITUAL ISLAM
+                        </h2>
+                        <blockquote class="border-l-4 border-neonGold pl-5 py-3 my-2 bg-neonGold/5 rounded-r-2xl">
+                            <p class="font-serif italic text-lg text-white/95 leading-relaxed">
+                                "Sebaik-baik manusia adalah yang paling bermanfaat bagi manusia lainnya."
+                            </p>
+                            <cite class="font-space text-xs text-neonGold block mt-3 font-bold tracking-wider">— HR. Ahmad</cite>
+                        </blockquote>
+                        <p class="text-xs text-textDim leading-relaxed mt-4">
+                            Rasulullah ﷺ tidak pernah mendidik umatnya untuk memelihara ketakutan individualistik yang egois. Tokoh utama yang sejati adalah mereka yang memiliki empati mendalam serta komitmen untuk memecahkan persoalan peradaban di sekeliling mereka.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 10: Sentuhan Jiwa -->
+            <div class="slide-content" id="slide10">
+                <div class="text-center mb-6">
+                    <h2 class="font-space font-bold text-3xl tracking-wide text-white flex items-center justify-center gap-3">
+                        <i class="fa-solid fa-heart text-neonMagenta"></i> HAKIKAT SENTUHAN JIWA
+                    </h2>
+                    <p class="text-textDim text-sm mt-1">Mengapa lubuk kesadaran kita selalu tergetar oleh perjalanan hidup sang pahlawan?</p>
+                </div>
+
+                <div class="grid grid-cols-3 gap-6 mt-6">
+                    <div class="glass-panel p-6 flex flex-col justify-between items-center text-center h-[230px] border-t-2 border-neonMagenta">
+                        <div class="text-3xl text-neonMagenta mb-3"><i class="fa-solid fa-hand-holding-heart animate-pulse"></i></div>
+                        <div>
+                            <h3 class="font-space font-bold text-white text-xs tracking-wider uppercase mb-1.5">Pengorbanan Melampaui Ego</h3>
+                            <p class="text-[11px] text-textDim leading-relaxed">
+                                Manusia pada dasarnya tidak menyukai dominasi kekuasaan dingin yang kosong. Kita tunduk pada ketulusan untuk berkorban.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-6 flex flex-col justify-between items-center text-center h-[230px] border-t-2 border-neonGold">
+                        <div class="text-3xl text-neonGold mb-3"><i class="fa-solid fa-person-running"></i></div>
+                        <div>
+                            <h3 class="font-space font-bold text-white text-xs tracking-wider uppercase mb-1.5">Perjuangan Melampaui Hasil</h3>
+                            <p class="text-[11px] text-textDim leading-relaxed">
+                                Kita tidak tersentuh oleh kemenangan yang diraih secara instan. Kita menghormati ketangguhan dalam menghadapi keterpurukan.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-6 flex flex-col justify-between items-center text-center h-[230px] border-t-2 border-neonCyan">
+                        <div class="text-3xl text-neonCyan mb-3"><i class="fa-solid fa-shield-cat"></i></div>
+                        <div>
+                            <h3 class="font-space font-bold text-white text-xs tracking-wider uppercase mb-1.5">Ketulusan Melampaui Trik</h3>
+                            <p class="text-[11px] text-textDim leading-relaxed">
+                                Bukan sihir canggih yang menarik simpati terdalam kita. Melainkan kemurnian motivasi dari lubuk hati sang pahlawan.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 11: Episode Terakhir (Interactive Legacy Simulator) -->
+            <div class="slide-content" id="slide11">
+                <div class="grid grid-cols-12 gap-8 h-full items-center">
+                    <div class="col-span-5 flex flex-col justify-center">
+                        <h2 class="font-space font-bold text-3xl tracking-wide text-white mb-4 flex items-center gap-3">
+                            <i class="fa-solid fa-clapperboard text-neonMagenta"></i> EPISODE TERAKHIR
+                        </h2>
+                        <p class="text-xs text-textDim leading-relaxed mb-4">
+                            Suatu hari nanti, tirai panggung kehidupan fisik kita pasti ditutup secara absolut. <strong class="text-white">Tidak ada season lanjutan.</strong>
+                        </p>
+                        <p class="text-xs text-textDim leading-relaxed">
+                            Ketika credit scene berakhir, seluruh sistem peringkat digital dan harta fana Anda lenyap. Yang tersisa hanyalah akumulasi amal kebaikan Anda.
+                        </p>
+                    </div>
+
+                    <!-- Interactive Legacy Stats Simulator -->
+                    <div class="col-span-7 glass-panel p-5 border border-neonMagenta/20 h-[350px] flex flex-col justify-between">
+                        <div>
+                            <h3 class="font-space text-xs text-neonMagenta font-bold tracking-widest uppercase mb-1">THE FINALE STATS SIMULATOR</h3>
+                            <p class="text-[10px] text-textDim">Simulasikan sisa dampak kehidupan Anda. Tekan tombol plus (+) untuk memperluas kontribusi Anda:</p>
+                        </div>
+
+                        <!-- Stats Rows -->
+                        <div class="space-y-3 my-2 text-xs">
+                            <div class="flex items-center justify-between border-b border-white/5 pb-2">
+                                <span class="text-textDim"><i class="fa-solid fa-wallet mr-2 text-white/20"></i> Peringkat Kekayaan Material</span>
+                                <span class="font-space text-white text-right font-bold">0 (DISINKRONISASI)</span>
+                            </div>
+                            <div class="flex items-center justify-between border-b border-white/5 pb-2">
+                                <span class="text-textDim"><i class="fa-solid fa-people-group mr-2 text-neonGreen"></i> Manfaat bagi Sesama</span>
+                                <div class="flex items-center gap-3">
+                                    <span id="statManfaat" class="font-space text-neonGreen font-bold">15 PTS</span>
+                                    <button onclick="increaseLegacy('statManfaat')" class="w-6 h-6 rounded bg-neonGreen/10 border border-neonGreen text-neonGreen flex items-center justify-center hover:bg-neonGreen hover:text-deep transition">+</button>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between border-b border-white/5 pb-2">
+                                <span class="text-textDim"><i class="fa-solid fa-smile-wink mr-2 text-neonMagenta"></i> Senyum yang Dibahagiakan</span>
+                                <div class="flex items-center gap-3">
+                                    <span id="statHati" class="font-space text-neonMagenta font-bold">10 PTS</span>
+                                    <button onclick="increaseLegacy('statHati')" class="w-6 h-6 rounded bg-neonMagenta/10 border border-neonMagenta text-neonMagenta flex items-center justify-center hover:bg-neonMagenta hover:text-deep transition">+</button>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between border-b border-white/5 pb-2">
+                                <span class="text-textDim"><i class="fa-solid fa-hands-praying mr-2 text-neonGold"></i> Jejak Doa yang Ditinggalkan</span>
+                                <div class="flex items-center gap-3">
+                                    <span id="statDoa" class="font-space text-neonGold font-bold">5 PTS</span>
+                                    <button onclick="increaseLegacy('statDoa')" class="w-6 h-6 rounded bg-neonGold/10 border border-neonGold text-neonGold flex items-center justify-center hover:bg-neonGold hover:text-deep transition">+</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="legacySum" class="text-center font-space text-[10px] text-textDim uppercase tracking-wider">
+                            Peringkat Legasi: <span id="legacyRank" class="text-neonCyan font-bold">Bronze Hero</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 12: Quest Terbesarmu (With Quest Card Generator) -->
+            <div class="slide-content" id="slide12">
+                <div class="grid grid-cols-12 gap-8 h-full items-center">
+                    <div class="col-span-5 flex flex-col justify-center">
+                        <span class="text-neonCyan font-space text-[10px] tracking-[0.3em] font-bold uppercase mb-2">[ THE CHALLENGE AHEAD ]</span>
+                        <h2 class="font-space font-black text-3xl tracking-wide text-white leading-tight">
+                            KISAHMU BARU DIMULAI!
+                        </h2>
+                        <p class="text-xs text-textDim leading-relaxed mt-3 mb-4">
+                            Selama embusan napas masih mengalir, <span class="text-neonCyan">Training Arc</span> Anda belum usai. Quest utama masih menanti.
+                        </p>
+                        <!-- Selector for Daily Misi Hero -->
+                        <div class="space-y-2">
+                            <label class="font-space text-[9px] text-textDim tracking-wider uppercase">PILIH ARKETIPE PAHLAWANMU:</label>
+                            <select id="heroClassSelect" onchange="generateQuestCard()" class="w-full bg-rpgDark border border-white/10 rounded-xl px-3 py-2 text-xs font-space text-white focus:border-neonCyan outline-none">
+                                <option value="creator">THE CREATOR (Melahirkan Solusi Karya Nyata)</option>
+                                <option value="helper">THE HELPER (Melindungi & Membantu Sesama)</option>
+                                <option value="visionary">THE VISIONARY (Merumuskan Visi Besar Hidup)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Quest Card Display -->
+                    <div class="col-span-7 glass-panel p-5 border border-neonCyan/20 h-[365px] flex flex-col justify-between relative overflow-hidden">
+                        <!-- Holographic corner decorations -->
+                        <div class="absolute top-0 right-0 w-12 h-12 border-t border-r border-neonCyan/30 rounded-tr-lg"></div>
+                        <div class="absolute bottom-0 left-0 w-12 h-12 border-b border-l border-neonCyan/30 rounded-bl-lg"></div>
+
+                        <div class="z-10 flex justify-between items-center border-b border-white/5 pb-2">
+                            <span class="font-space text-[10px] text-neonCyan font-bold tracking-widest"><i class="fa-solid fa-scroll mr-1"></i> ACTIVE QUEST CARD</span>
+                            <span class="text-[9px] font-space text-textDim uppercase">Tier: S-Class</span>
+                        </div>
+
+                        <div id="questCardBody" class="z-10 my-2 flex flex-col items-center justify-center text-center">
+                            <!-- Populated dynamically via JS -->
+                        </div>
+
+                        <div class="z-10 flex gap-3 justify-center">
+                            <button onclick="copyQuestToClipboard()" class="px-5 py-2.5 border border-neonCyan/30 hover:border-neonCyan hover:bg-neonCyan/10 text-white font-space text-[10px] tracking-wider rounded-xl transition-all duration-300">
+                                <i class="fa-solid fa-copy mr-1"></i> SALIN MISI
+                            </button>
+                            <button onclick="claimQuestReward()" class="px-5 py-2.5 bg-neonCyan text-deep font-space text-[10px] tracking-wider font-bold rounded-xl hover:scale-105 transition-all duration-300">
+                                <i class="fa-solid fa-star mr-1 animate-spin" style="animation-duration: 4s;"></i> AMBIL REWARD
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- ==================== FOOTER CONTROLS ==================== -->
+        <footer class="h-[70px] border-t border-white/5 px-12 flex items-center justify-between relative z-[110]">
+            <button id="prevBtn" onclick="prevSlide()" class="flex items-center gap-2 px-5 py-2 bg-white/5 border border-white/10 rounded-xl hover:border-neonCyan hover:text-neonCyan transition font-space text-[10px] tracking-widest uppercase" disabled>
+                <i class="fa-solid fa-chevron-left"></i> PREV [←]
+            </button>
+
+            <!-- Navigation Dots Indicator -->
+            <div id="slideIndicatorDots" class="flex items-center gap-3">
+                <!-- Programmatically generated by script -->
+            </div>
+
+            <button id="nextBtn" onclick="nextSlide()" class="flex items-center gap-2 px-5 py-2 bg-neonCyan/10 border border-neonCyan/30 text-neonCyan rounded-xl hover:bg-neonCyan hover:text-deep transition font-space text-[10px] tracking-widest font-bold uppercase">
+                NEXT [→] <i class="fa-solid fa-chevron-right"></i>
+            </button>
+        </footer>
+
+    </div>
+
+    <!-- Sound System & Presentation Logic -->
+    <script>
+        let currentSlide = 1;
+        const totalSlides = 12;
+        let isSoundtrackOn = false;
+
+        // Dynamic Interactive Web Audio Synthesis Context
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let bgmOscs = [];
+        let bgmGain = null;
+        let bgmInterval = null;
+
+        // Touch Sweep Gestures Logic
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        const slideDeckWrapper = document.getElementById('slideDeck');
+        slideDeckWrapper.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+
+        slideDeckWrapper.addEventListener('touchend', e => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipeGesture();
+        });
+
+        function handleSwipeGesture() {
+            const threshold = 60;
+            if (touchStartX - touchEndX > threshold) {
+                nextSlide(); // Swiped left
+            } else if (touchEndX - touchStartX > threshold) {
+                prevSlide(); // Swiped right
+            }
+        }
+
+        // Audio Synthesizer Engine
+        function playSFX(type) {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            const now = audioCtx.currentTime;
+            
+            try {
+                if (type === 'click') {
+                    // Tactile mechanical switch click
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(800, now);
+                    osc.frequency.exponentialRampToValueAtTime(150, now + 0.08);
+                    gain.gain.setValueAtTime(0.06, now);
+                    gain.gain.linearRampToValueAtTime(0.001, now + 0.08);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } 
+                else if (type === 'slide') {
+                    // Smooth synthesizer sweep
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(200, now);
+                    osc.frequency.exponentialRampToValueAtTime(600, now + 0.3);
+                    gain.gain.setValueAtTime(0.03, now);
+                    gain.gain.linearRampToValueAtTime(0.001, now + 0.3);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                }
+                else if (type === 'shatter') {
+                    // Impact explosion filter
+                    const osc1 = audioCtx.createOscillator();
+                    const osc2 = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    
+                    osc1.type = 'sawtooth';
+                    osc1.frequency.setValueAtTime(150, now);
+                    osc1.frequency.linearRampToValueAtTime(20, now + 0.4);
+
+                    osc2.type = 'triangle';
+                    osc2.frequency.setValueAtTime(300, now);
+                    osc2.frequency.linearRampToValueAtTime(60, now + 0.25);
+
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.linearRampToValueAtTime(0.001, now + 0.4);
+
+                    osc1.connect(gain);
+                    osc2.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    
+                    osc1.start(now);
+                    osc2.start(now);
+                    osc1.stop(now + 0.4);
+                    osc2.stop(now + 0.4);
+                }
+                else if (type === 'level-up') {
+                    // RPG Chord Success
+                    const triad = [261.63, 329.63, 392.00, 523.25, 659.25, 1046.50]; 
+                    triad.forEach((freq, idx) => {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(freq, now + (idx * 0.06));
+                        gain.gain.setValueAtTime(0.04, now + (idx * 0.06));
+                        gain.gain.linearRampToValueAtTime(0.001, now + (idx * 0.06) + 0.35);
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.start(now + (idx * 0.06));
+                        osc.stop(now + (idx * 0.06) + 0.4);
+                    });
+                }
+            } catch (err) {
+                console.warn('Audio synthesis not fully supported by device settings: ', err);
+            }
+        }
+
+        // BGM Synthesizer Ambient Theme Loop
+        function toggleBGM() {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            const btn = document.getElementById('bgmToggleBtn');
+            const txt = document.getElementById('bgmText');
+
+            if (!isSoundtrackOn) {
+                isSoundtrackOn = true;
+                txt.innerText = "SOUNDTRACK: ON";
+                btn.classList.add('border-neonCyan', 'text-neonCyan');
+                startBGM();
+                playSFX('level-up');
+            } else {
+                isSoundtrackOn = false;
+                txt.innerText = "SOUNDTRACK: OFF";
+                btn.classList.remove('border-neonCyan', 'text-neonCyan');
+                stopBGM();
+                playSFX('click');
+            }
+        }
+
+        function startBGM() {
+            const chords = [
+                [110.00, 146.83, 164.81], // A minor pad base
+                [87.31, 130.81, 174.61],  // F major pad base
+                [130.81, 164.81, 196.00], // C major pad base
+                [98.00, 146.83, 196.00]   // G major pad base
+            ];
+            
+            let currentChord = 0;
+            
+            function playAmbientPad() {
+                if (!isSoundtrackOn) return;
+                const now = audioCtx.currentTime;
+                const frequencies = chords[currentChord];
+                
+                // Keep track of active oscillators to stop them if requested
+                bgmOscs = frequencies.map(freq => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now);
+                    
+                    // Attack-Swell-Decay envelope
+                    gain.gain.setValueAtTime(0, now);
+                    gain.gain.linearRampToValueAtTime(0.012, now + 1.2);
+                    gain.gain.linearRampToValueAtTime(0, now + 4.2);
+                    
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 4.5);
+                    return osc;
+                });
+                
+                currentChord = (currentChord + 1) % chords.length;
+            }
+
+            playAmbientPad();
+            bgmInterval = setInterval(playAmbientPad, 4500);
+        }
+
+        function stopBGM() {
+            if (bgmInterval) {
+                clearInterval(bgmInterval);
+                bgmInterval = null;
+            }
+            bgmOscs.forEach(osc => {
+                try { osc.stop(); } catch(e) {}
+            });
+            bgmOscs = [];
+        }
+
+        // HUD Indicator Points Generator
+        const dotsContainer = document.getElementById('slideIndicatorDots');
+        for (let i = 1; i <= totalSlides; i++) {
+            const dot = document.createElement('div');
+            dot.className = `w-2 h-2 rounded-full cursor-pointer transition-all duration-300 ${i === 1 ? 'bg-neonCyan w-5' : 'bg-white/20'}`;
+            dot.setAttribute('onclick', `goToSlide(${i})`);
+            dot.setAttribute('id', `navDot-${i}`);
+            dotsContainer.appendChild(dot);
+        }
+
+        // Presenter state modifier
+        function updatePresentation() {
+            for (let i = 1; i <= totalSlides; i++) {
+                const slide = document.getElementById(`slide${i}`);
+                if (i === currentSlide) {
+                    slide.classList.add('active');
+                } else {
+                    slide.classList.remove('active');
+                }
+            }
+
+            document.getElementById('slideCounter').innerText = `QUEST ${currentSlide.toString().padStart(2, '0')} / ${totalSlides}`;
+            
+            const progressRatio = (currentSlide / totalSlides) * 100;
+            document.getElementById('slideProgressBar').style.width = `${progressRatio}%`;
+
+            document.getElementById('prevBtn').disabled = (currentSlide === 1);
+            document.getElementById('nextBtn').disabled = (currentSlide === totalSlides);
+
+            for (let i = 1; i <= totalSlides; i++) {
+                const dot = document.getElementById(`navDot-${i}`);
+                if (i === currentSlide) {
+                    dot.className = 'w-5 h-2 bg-neonCyan rounded-full cursor-pointer transition-all duration-300';
+                } else {
+                    dot.className = 'w-2 h-2 bg-white/20 rounded-full cursor-pointer transition-all duration-300';
+                }
+            }
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides) {
+                currentSlide++;
+                playSFX('slide');
+                updatePresentation();
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 1) {
+                currentSlide--;
+                playSFX('slide');
+                updatePresentation();
+            }
+        }
+
+        function goToSlide(num) {
+            if (num !== currentSlide && num >= 1 && num <= totalSlides) {
+                currentSlide = num;
+                playSFX('slide');
+                updatePresentation();
+            }
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                prevSlide();
+            }
+        });
+
+        // SLIDE 2 CHARACTER METADATA SELECTOR
+        const characterData = {
+            luffy: {
+                quote: `"Bukan karena kekuatan dahsyat Luffy yang legendaris, tapi impian Raja Bajak Laut yang terpatri kuat di jiwanyalah yang menggerakkan seluruh kru Topi Jerami melampaui batas-batas dunia!"`,
+                color: 'text-orange-400'
+            },
+            naruto: {
+                quote: `"Meskipun dianggap sampah dan dikucilkan sejak lahir, Naruto tetap teguh dengan satu tekad: Menjadi Hokage. Kejelasan arah jalan hidup inilah yang membuat takdir mengalah padanya!"`,
+                color: 'text-yellow-400'
+            },
+            tanjiro: {
+                quote: `"Tanjiro tidak pernah mengeluh meski seluruh keluarganya dibantai. Empati yang murni dan tekad melunakkan hati para pembasmi iblis lainnya demi mewujudkan satu misi: Menyelamatkan Nezuko."`,
+                color: 'text-emerald-400'
+            },
+            eren: {
+                quote: `"Eren siap menjadi musuh seluruh peradaban manusia demi mengakhiri belenggu penderitaan dan meraih impian kebebasan absolut yang telah diyakininya sejak kecil."`,
+                color: 'text-red-400'
+            },
+            l_lawliet: {
+                quote: `"L Lawliet mengabdikan otaknya yang jenius bukan untuk pamer ketenaran, melainkan rela mati dalam kegelapan investigasi demi membuktikan nilai kebenaran murni melawan kesombongan Kira."`,
+                color: 'text-cyan-400'
+            }
+        };
+
+        function selectCharacter(id, element) {
+            document.querySelectorAll('.character-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            element.classList.add('active');
+            playSFX('click');
+
+            const info = characterData[id];
+            const qBox = document.getElementById('characterQuoteBox');
+            qBox.innerHTML = `
+                <div class="text-center animate-[slideReveal_0.5s_ease-out]">
+                    <p class="font-jakarta italic ${info.color} text-sm font-semibold">${info.quote}</p>
+                </div>
+            `;
+        }
+
+        // SLIDE 4 MINI GAME: NPC LOOP BREAKER
+        let loopClicks = 0;
+        function breakNpcLoop() {
+            loopClicks++;
+            playSFX('click');
+            
+            const loopCircle = document.getElementById('loopCircle');
+            const loopStatusText = document.getElementById('loopStatusText');
+            const gameBg = document.getElementById('gameBg');
+
+            if (loopClicks === 1) {
+                loopCircle.style.borderColor = 'var(--neonGold)';
+                document.getElementById('loopIcon').className = "fa-solid fa-arrows-spin text-3xl text-neonGold animate-spin";
+                loopStatusText.innerText = "CRITICAL LIMIT DETECTED";
+                loopStatusText.style.color = "var(--neonGold)";
+                document.getElementById('breakLoopBtn').innerText = "DOBRAK LEBIH KERAS!";
+            } else if (loopClicks === 2) {
+                loopCircle.style.borderColor = 'var(--neonCyan)';
+                document.getElementById('loopIcon').className = "fa-solid fa-arrows-spin text-3xl text-neonCyan animate-spin";
+                loopStatusText.innerText = "SYSTEM INTRUSION DETECTED";
+                loopStatusText.style.color = "var(--neonCyan)";
+                document.getElementById('breakLoopBtn').innerText = "HANCURKAN POLA SEKARANG!";
+            } else if (loopClicks >= 3) {
+                playSFX('shatter');
+                loopCircle.style.borderColor = 'var(--neonGreen)';
+                loopCircle.style.transform = 'scale(1.2)';
+                loopCircle.style.boxShadow = 'var(--glow-green)';
+                document.getElementById('loopIcon').className = "fa-solid fa-circle-check text-4xl text-neonGreen";
+                loopStatusText.innerText = "STATUS: MAIN CHARACTER UNLOCKED";
+                loopStatusText.style.color = "var(--neonGreen)";
+                gameBg.className = "absolute inset-0 bg-neonGreen/5 transition-colors duration-1000 z-0";
+                document.getElementById('breakLoopBtn').style.display = 'none';
+            }
+        }
+
+        // SLIDE 6 MINI GAME: FEAR SHATTERER
+        let brokenFears = 0;
+        function shatterFear(element, fearName) {
+            if (element.classList.contains('opacity-20')) return;
+
+            playSFX('shatter');
+            element.classList.add('opacity-20', 'pointer-events-none', 'scale-90');
+            element.style.borderColor = 'rgba(255, 255, 255, 0.05)';
+            element.querySelector('i').className = 'fa-solid fa-shield-halved text-neonGreen';
+
+            brokenFears++;
+            const feedback = document.getElementById('shatterFeedback');
+
+            if (brokenFears === 1) {
+                feedback.innerText = `Kamu berhasil melebur "${fearName}"!`;
+                feedback.style.color = 'var(--neonMagenta)';
+            } else if (brokenFears === 2) {
+                feedback.innerText = `Dinding "${fearName}" hancur berkeping-keping!`;
+                feedback.style.color = 'var(--neonGold)';
+            } else if (brokenFears === 3) {
+                feedback.innerText = "SELAMAT! Jalan pikiran kepahlawanan Anda kini bebas hambatan!";
+                feedback.style.color = 'var(--neonGreen)';
+                playSFX('level-up');
+            }
+        }
+
+        // SLIDE 11 INTERACTIVE LEGACY STATS
+        const legacyPoints = {
+            statManfaat: 15,
+            statHati: 10,
+            statDoa: 5
+        };
+
+        function increaseLegacy(id) {
+            playSFX('click');
+            legacyPoints[id] += 5;
+            document.getElementById(id).innerText = `${legacyPoints[id]} PTS`;
+            
+            const total = legacyPoints.statManfaat + legacyPoints.statHati + legacyPoints.statDoa;
+            const rankLabel = document.getElementById('legacyRank');
+            
+            if (total >= 70) {
+                rankLabel.innerText = "Legendary Shujinkou (Max Arc)";
+                rankLabel.className = "text-neonGold font-bold";
+                playSFX('level-up');
+            } else if (total >= 45) {
+                rankLabel.innerText = "Golden Benefactor (Tier-S)";
+                rankLabel.className = "text-neonCyan font-bold";
+            } else {
+                rankLabel.innerText = "Bronze Hero (Tier-D)";
+                rankLabel.className = "text-neonMagenta font-bold";
+            }
+        }
+
+        // SLIDE 12 RPG QUEST CARD GENERATOR
+        const questTemplates = {
+            creator: {
+                icon: "fa-solid fa-wand-magic-sparkles text-neonMagenta",
+                title: "QUEST HARIAN: TRAINING THE CREATIVE MIND",
+                task: "Gagaslah minimal 1 karya orisinal/tulis 1 pemecahan masalah konkret untuk kendala nyata yang sedang dihadapi teman dekatmu hari ini.",
+                reward: "+150 Wisdom / +100 Resolve"
+            },
+            helper: {
+                icon: "fa-solid fa-heart text-neonGreen",
+                title: "QUEST HARIAN: COMPASSIONATE ADVOCATE",
+                task: "Ulurkan bantuan tanpa pamrih untuk mempermudah urusan mendesak minimal 1 orang di sekitarmu sebelum matahari tenggelam.",
+                reward: "+250 Benevolence / +80 Honor"
+            },
+            visionary: {
+                icon: "fa-solid fa-compass text-neonGold",
+                title: "QUEST HARIAN: ABSOLUTE VISION PLANNING",
+                task: "Ambil selembar kertas fisik dan petakan 1 rencana misi hidup 3 tahun ke depan dengan berani tanpa keraguan pikiran.",
+                reward: "+200 Vision Power / +120 Focus"
+            }
+        };
+
+        function generateQuestCard() {
+            const selectValue = document.getElementById('heroClassSelect').value;
+            const data = questTemplates[selectValue];
+            const container = document.getElementById('questCardBody');
+
+            container.innerHTML = `
+                <div class="animate-[slideReveal_0.5s_ease-out]">
+                    <div class="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center border border-white/10 mb-3 mx-auto">
+                        <i class="${data.icon} text-2xl"></i>
+                    </div>
+                    <h4 class="font-space font-bold text-xs text-white tracking-wider uppercase mb-2">${data.title}</h4>
+                    <p class="font-jakarta text-xs text-textDim leading-relaxed max-w-lg mx-auto bg-white/5 p-4 rounded-xl border border-white/5 mb-3">
+                        "${data.task}"
+                    </p>
+                    <div class="text-[9px] font-space text-neonGreen uppercase font-bold tracking-wider">REWARD: ${data.reward}</div>
+                </div>
+            `;
+        }
+
+        function copyQuestToClipboard() {
+            const selectValue = document.getElementById('heroClassSelect').value;
+            const data = questTemplates[selectValue];
+            const textToCopy = `[MY QUEST HARIAN]: ${data.title} - ${data.task} - Reward: ${data.reward}`;
+            
+            // Clipboard fallback implementation
+            const tempArea = document.createElement("textarea");
+            tempArea.value = textToCopy;
+            document.body.appendChild(tempArea);
+            tempArea.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempArea);
+            
+            playSFX('click');
+            
+            // Show custom toast notification
+            const toast = document.getElementById('customToast');
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
+
+        function claimQuestReward() {
+            playSFX('level-up');
+            // Animate dynamic claim feedback directly in the UI instead of browser block alert
+            const rewardBtn = event.currentTarget;
+            const originalHTML = rewardBtn.innerHTML;
+            rewardBtn.innerHTML = `<i class="fa-solid fa-circle-check"></i> REWARD DIKLAIM`;
+            rewardBtn.classList.add('bg-neonGreen', 'text-deep');
+            setTimeout(() => {
+                rewardBtn.innerHTML = originalHTML;
+                rewardBtn.classList.remove('bg-neonGreen', 'text-deep');
+            }, 2000);
+        }
+
+        // Pre-initialize card
+        generateQuestCard();
+
+        // 16:9 VIEWPORT SCALE FACTOR ENGINE
+        const slideDeck = document.getElementById('slideDeck');
+        function scaleDeckToFit() {
+            const baseWidth = 1280;
+            const baseHeight = 720;
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+
+            const scaleX = windowWidth / baseWidth;
+            const scaleY = windowHeight / baseHeight;
+
+            const scale = Math.min(scaleX, scaleY) * 0.94;
+            slideDeck.style.transform = `scale(${scale})`;
+        }
+
+        window.addEventListener('resize', scaleDeckToFit);
+        window.addEventListener('load', () => {
+            scaleDeckToFit();
+            initParticles();
+        });
+
+        // DYNAMIC AURA PARTICLE CANVAS GENERATOR
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+        let particleArray = [];
+        let cursorX = 0;
+        let cursorY = 0;
+
+        function setCanvasDimensions() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', setCanvasDimensions);
+        setCanvasDimensions();
+
+        window.addEventListener('mousemove', (e) => {
+            cursorX = e.clientX;
+            cursorY = e.clientY;
+        });
+
+        class AuraParticle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.radius = Math.random() * 2 + 0.4;
+                this.velX = (Math.random() - 0.5) * 0.35;
+                this.velY = Math.random() * -1.0 - 0.15; // Slow rising up like bonfire ashes
+                this.color = Math.random() > 0.5 ? 'rgba(6, 182, 212, 0.4)' : 'rgba(236, 72, 153, 0.35)';
+            }
+            update() {
+                this.x += this.velX;
+                this.y += this.velY;
+                
+                // Attracted toward interactive cursor coordinates
+                const distanceX = cursorX - this.x;
+                const distanceY = cursorY - this.y;
+                const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+                if (distance < 160) {
+                    this.x += distanceX * 0.012;
+                    this.y += distanceY * 0.012;
+                }
+
+                if (this.y < 0) {
+                    this.y = canvas.height;
+                    this.x = Math.random() * canvas.width;
+                }
+            }
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function initParticles() {
+            particleArray = [];
+            const density = Math.min(80, Math.floor(window.innerWidth / 18));
+            for (let i = 0; i < density; i++) {
+                particleArray.push(new AuraParticle());
+            }
+            runParticleLoop();
+        }
+
+        function runParticleLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particleArray.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(runParticleLoop);
+        }
+    </script>
+</body>
+</html>
